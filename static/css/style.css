@@ -1,0 +1,116 @@
+@import url('https://fonts.googleapis.com/css2?family=Afacad+Flux:wght@100..1000&family=Afacad:ital,wght@0,400..700;1,400..700&family=Inter:ital,opsz,wght@0,14..32,500;1,14..32,500&family=Jost:ital,wght@0,100..900;1,100..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Lexend:wght@100..900&family=Love+Ya+Like+A+Sister&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Aclonica&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Kanit&display=swap');
+:root{
+    --primary-color: #37231C;
+    --secondary-color: #4B46E4;
+    --black-color: #000000;
+    --white-color: #E9F6FD;
+    --third-color: #5B4545;
+
+    --font-size-s:0.9rem;
+    --font-size-xs: 0.75rem; /* Extra small text (e.g., captions, footnotes) */
+    --font-size-s: 0.9rem;   /* Small text (e.g., labels, small buttons) */
+    --font-size-m: 1rem;     /* Medium text (default body text) */
+    --font-size-l: 1.25rem;  /* Large text (subheadings) */
+    --font-size-xl: 1.5rem;  /* Extra large text (section titles) */
+    --font-size-xxl: 2rem;   /* Extra extra large (main headings) */
+    --font-size-xxxl: 3rem;  /* Huge display text or hero banner titles */
+}
+body {
+  display: flex;
+  justify-content: center;
+  background-color: #E9F6FD;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+}
+.container {
+  text-align: center;
+  min-height: 100vh; /* fills the first screen */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+.box-container {
+    background-color: #ffffff;
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); /* softer and more natural */
+    padding: 2rem;
+    width: 100%;
+    max-width: 600px;
+    min-height: 200px; /* replaces fixed height */
+    margin: 0 auto; /* centers horizontally */
+    transition: all 0.3s ease-in-out;
+}
+/* Light elevation and smooth hover feel (optional) */
+.box-container:hover {
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+}
+.text-bottom{
+    justify-content: space-between; 
+    font-family: "Aclonica", sans-serif;   
+    background-color:white;
+    align-items: center; /* centers text vertically */
+    display: flex; /* needed for justify-content to work */
+    font-weight: 800;
+    font-size: var(--font-size-xl);
+    position: fixed;
+    height: 50px;
+    width: 100%;
+    bottom: 0;
+    left:0;
+}
+.text-type{
+    border: 1px solid #4c4c4c;
+    border-radius: 10px;
+    padding: 25px 0;
+    width: 85%;
+}
+.text-type::placeholder {
+    color: #aaa;
+    text-align: center;
+    font-family: 'Inclusive Sans', sans-serif;
+}
+.check-btn{
+    background: var(--secondary-color);
+    font-family: "Kanit",sans-serif;
+    font-weight:bold;
+    border-radius: 10px;
+    font-size: 15px;
+    padding: 15px;
+    margin-top: 15px;
+    color: var(--white-color);
+    border: none;
+    cursor: pointer;
+}
+.analyze-form{
+    padding-top: 25px;
+}
+.loading {
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    display: block;
+    margin: 0 auto;
+}
+
+.loading-text {
+    margin-top: 1rem;
+    color: #4F46E5; /* indigo tone */
+    font-weight: 500;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.hidden {
+    display: none;
+}
