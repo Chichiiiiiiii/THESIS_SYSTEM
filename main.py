@@ -11,10 +11,7 @@ from preprocess import (
 app = Flask(__name__)
 
 trusted_news_providers = [
-    "bbc","reuters","nytimes","theguardian","apnews","cnn","npr",
-    "aljazeera","cbc","bloomberg","ft","washingtonpost","usanews",
-    "skynews","cbsnews","nbcnews","wsj","theatlantic","forbes",
-    "chicago.suntimes","politico"
+    
 ]
 
 @app.route("/")
@@ -24,7 +21,9 @@ def home():
 @app.route("/result", methods=["POST"])
 def predict():
     query = {
+        "author": request.form["author"],
         "title": request.form["title"],
+        "publish_date": request.form["publish_date"],
         "text": request.form["text"]
     }
 
@@ -33,7 +32,7 @@ def predict():
     sentiment = get_sentiments(news)
     miss = round(count_misspelled_words(news), 2)
     offensive = count_offensive_words(news)
-    pred = fake_news_det(news)
+    pred = fake_news_det(news) #Will show if the news is fake or real using my AI model.
 
     similarity_df = search_similar_articles(query)
 

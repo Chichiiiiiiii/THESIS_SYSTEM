@@ -12,7 +12,7 @@ from nltk.stem import PorterStemmer
 from nltk import WordNetLemmatizer
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from textblob import TextBlob, Word
+from textblob import TextBlob, Word 
 from better_profanity import profanity
 
 # ================= DATA =================
@@ -93,7 +93,7 @@ def search_similar_articles(query, num_results=5):
         except ArticleException:
             continue
 
-    df = pd.DataFrame(similar_articles)
+    df = pd.DataFrame(similar_articles) #will extract the files 
     if not df.empty:
         df = df.sort_values(by="similarity", ascending=False)
     return df
@@ -105,7 +105,7 @@ def fake_news_det(news):
     vectorized = tfidf_v.transform([processed_news])
     return model.predict(vectorized)
 
-def get_sentiments(text):
+def get_sentiments(text): #Will lowercase depends on the mood.
     vs = TextBlob(text.lower()).sentiment[0]
     if vs > 0: return 'Positive'
     if vs < 0: return 'Negative'
