@@ -7,7 +7,12 @@ from html.parser import HTMLParser
 
 df = pd.read_csv("Taglish.csv", nrows=1000)
 
-df["title"]=df["title"].str.lower()
-df["text"]=df["text"].str.lower()
+# lowercase ALL text columns
+for col in df.columns:
+    df[col] = df[col].astype(str).str.lower()
+    df[col] = df[col].astype(str).str.replace(" ", "")
 
-print(df.head())
+
+print(df)
+
+
