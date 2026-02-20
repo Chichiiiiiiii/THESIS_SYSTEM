@@ -9,4 +9,5 @@ df = pd.read_csv("Taglish.csv", nrows=1000)
 
 df["title"]=df["title"].str.lower()
 df["text"]=df["text"].str.lower()
-print(df)
+
+print(df.head())
