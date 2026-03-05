@@ -1,0 +1,193 @@
+    <!DOCTYPE html>
+    <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Fake News Detection</title>
+            <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+            <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+        </head>
+        <body>
+    <div class="background-pattern"></div>
+    
+    <div class="container">
+        <header>
+            <div class="title_">
+                <h1>Check the credibility of Any news Article in Seconds</h1>
+            </div>
+            <p class="tagline">Paste a news link, and our system will analyze it for credibility using AI and linguisitic patterns.</p>
+        </header>
+
+        <div class="main-card">
+            <div class="input-section">
+                
+                <div class="input-container">
+                    <textarea 
+                        id="newsText" 
+                        class="news-input" style="text-align: center;"
+                        placeholder="Paste News Article URL (e.g.,https://example.com/article)"
+                        maxlength="5000"
+                    ></textarea>
+                    <div class="char-counter">
+                        <span id="charCount">0</span>/5000
+                    </div>
+                </div>
+            </div>
+
+            <button class="analyze-btn" id="analyzeBtn">
+                <i class="fas fa-search"></i> Check Credibility
+            </button>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <span>Analyzing content with AI...</span>
+            </div>
+
+            <div class="result-section" id="resultSection">
+                <div class="result-card">
+                    <div class="result-header">
+                        <div class="result-icon" id="resultIcon">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="result-text">
+                            <div class="result-label" id="resultLabel">Likely Real News</div>
+                            <div class="confidence-score" id="confidenceText">Confidence: 87%</div>
+                        </div>
+                    </div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" id="confidenceFill"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const newsText = document.getElementById('newsText');
+        const charCount = document.getElementById('charCount');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loading = document.getElementById('loading');
+        const resultSection = document.getElementById('resultSection');
+        const resultIcon = document.getElementById('resultIcon');
+        const resultLabel = document.getElementById('resultLabel');
+        const confidenceText = document.getElementById('confidenceText');
+        const confidenceFill = document.getElementById('confidenceFill');
+
+        // Character counter
+        newsText.addEventListener('input', function() {
+            const count = this.value.length;
+            charCount.textContent = count;
+            
+            if (count > 4800) {
+                charCount.style.color = '#dc2626';
+            } else if (count > 4000) {
+                charCount.style.color = '#ea580c';
+            } else {
+                charCount.style.color = '#64748b';
+            }
+        });
+
+        // Analyze button functionality
+        analyzeBtn.addEventListener('click', function() {
+            const text = newsText.value.trim();
+            
+            if (!text) {
+                alert('Please enter some text to analyze');
+                return;
+            }
+
+            if (text.length < 10) {
+                alert('Please enter at least 10 characters for analysis');
+                return;
+            }
+
+            // Start analysis
+            analyzeBtn.disabled = true;
+            loading.classList.add('active');
+            resultSection.classList.remove('active');
+
+            // Simulate API call with realistic delay
+            setTimeout(() => {
+                // Mock analysis result
+                const mockResults = [
+                    {
+                        type: 'real',
+                        confidence: Math.floor(Math.random() * 20) + 75, // 75-95%
+                        label: 'Likely Real News',
+                        icon: 'fa-check'
+                    },
+                    {
+                        type: 'fake',
+                        confidence: Math.floor(Math.random() * 25) + 70, // 70-95%
+                        label: 'Potential Misinformation',
+                        icon: 'fa-exclamation-triangle'
+                    }
+                ];
+
+                // Simple heuristic for demo purposes
+                const suspiciousWords = ['shocking', 'unbelievable', 'miracle', 'doctors hate', 'click here', 'you won\'t believe'];
+                const hasSuspiciousWords = suspiciousWords.some(word => 
+                    text.toLowerCase().includes(word.toLowerCase())
+                );
+
+                const result = hasSuspiciousWords ? mockResults[1] : mockResults[0];
+                
+                // If it contains all caps or excessive punctuation, more likely fake
+                if (text === text.toUpperCase() && text.length > 50) {
+                    result.type = 'fake';
+                    result.confidence = Math.max(80, result.confidence);
+                    result.label = 'Likely Misinformation';
+                }
+
+                displayResult(result);
+                
+                loading.classList.remove('active');
+                analyzeBtn.disabled = false;
+            }, 2500);
+        });
+
+        function displayResult(result) {
+            // Update icon
+            resultIcon.className = `result-icon ${result.type}`;
+            resultIcon.innerHTML = `<i class="fas ${result.icon}"></i>`;
+
+            // Update label
+            resultLabel.textContent = result.label;
+            resultLabel.className = `result-label ${result.type}`;
+
+            // Update confidence
+            confidenceText.textContent = `Confidence: ${result.confidence}%`;
+            
+            // Update progress bar
+            confidenceFill.className = `confidence-fill ${result.type}`;
+            confidenceFill.style.width = '0%';
+            
+            // Show result section
+            resultSection.classList.add('active');
+            
+            // Animate progress bar
+            setTimeout(() => {
+                confidenceFill.style.width = `${result.confidence}%`;
+            }, 300);
+        }
+
+        // Add some interactive effects
+        document.querySelectorAll('.feature-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-5px) scale(1.02)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+
+        // Keyboard shortcut for analysis (Ctrl/Cmd + Enter)
+        newsText.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                analyzeBtn.click();
+            }
+        });
+    </script>
+</body>
+    </html>
