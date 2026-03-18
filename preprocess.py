@@ -1,50 +1,69 @@
-import re
 import pandas as pd
-import requests
-import joblib
-import emoji
+import re
+import string
 from bs4 import BeautifulSoup
-from googlesearch import search
-from newspaper import Article, ArticleException
-from nltk import pos_tag, word_tokenize
-from nltk.corpus import wordnet
-from nltk.stem import PorterStemmer
-from nltk import WordNetLemmatizer
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-from textblob import TextBlob, Word 
-from better_profanity import profanity
+from nltk.tokenize import RegexpTokenizer
+from nltk.corpus import stopwords
 
-# ================= DATA =================
+# 1. Load data
 df_tl = pd.read_csv("Datasets/Taglish.csv", nrows=1000)
 df_en = pd.read_csv("Datasets/English.csv", nrows=1000)
 
-# --- Standardize Tagalog dataset ---
-if "article" in df_tl.columns:
-    df_tl = df_tl.rename(columns={"article": "text"})
+# 2. Define Cleaning Function
+def clean_text(text):
+    if pd.isna(text): return ""
+    text = str(text).lower()
+    # Remove HTML
+    text = BeautifulSoup(text, "html.parser").get_text()
+    # Remove Digits
+    text = re.sub(r'\d+', '', text)
+    # Remove Punctuation
+    text = text.translate(str.maketrans('', '', string.punctuation))
+    # Remove non-word characters
+    text = re.sub(r'\W', ' ', text)
+    return text.strip()
 
-if df_tl["label"].dtype != object:
-    df_tl["label"] = df_tl["label"].map({0: "FAKE", 1: "REAL"})
+# 3. Function to find the text column
+def find_text_col(df):
+    targets = ['text', 'content', 'sentence', 'Tweets', 'message', 'statement']
+    for col in targets:
+        if col in df.columns:
+            return col
+    return df.columns[0]
 
-df_tl["language"] = "tl"
+col_tl = find_text_col(df_tl)
+col_en = find_text_col(df_en)
 
-# defragment frame (fix warning)
+# 4. APPLY CLEANING FIRST (Produces Clean Strings)
+print(f"Cleaning Taglish using column: '{col_tl}'")
+df_tl['cleaned_text'] = df_tl[col_tl].apply(clean_text)
+
+print(f"Cleaning English using column: '{col_en}'")
+df_en['cleaned_text'] = df_en[col_en].apply(clean_text)
+
+# 5. APPLY TOKENIZER SECOND (Produces Lists of Words)
+# We apply this to the 'cleaned_text' column we just created
+tokenizer = RegexpTokenizer(r'\w+')
+
+df_tl['tokens'] = df_tl['cleaned_text'].apply(lambda x: tokenizer.tokenize(x))
+df_en['tokens'] = df_en['cleaned_text'].apply(lambda x: tokenizer.tokenize(x))
+
+# 6. Instead of downloading, just use a hardcoded set
+stop_words_en = {"i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "the", "is", "at", "which", "on"}
+stop_words_tl = {"ang", "mga", "ng", "sa", "at", "na", "si", "ni", "kay", "para", "ay", "ito", "nito", "nila"}
+
+all_stopwords = stop_words_en.union(stop_words_tl)
+
+#tokenization step:
+df_tl['tokens'] = df_tl['cleaned_text'].apply(lambda x: [w for w in x.split() if w not in all_stopwords])
+df_en['tokens'] = df_en['cleaned_text'].apply(lambda x: [w for w in x.split() if w not in all_stopwords])
+
+# 7. De-fragment and Final Check
 df_tl = df_tl.copy()
+df_en = df_en.copy()
 
-# --- Standardize English dataset ---
-if "article" in df_en.columns and "text" not in df_en.columns:
-    df_en = df_en.rename(columns={"article": "text"})
+print("\n--- Taglish Result ---")
+print(df_tl[[col_tl, 'tokens']].head(3))
 
-df_en = df_en[["text", "label"]]
-df_en["language"] = "en"
-
-# --- Merge bilingual dataset ---
-df = pd.concat([df_tl, df_en], ignore_index=True)
-df = df.dropna(subset=["text", "label"])
-
-# --- Slang dictionary ---
-file_path = r"words-slang.txt"
-with open(file_path, "r", encoding="utf-8") as f:
-    slang_words = set(w.strip().lower() for w in f)
-
-
+print("\n--- English Result ---")
+print(df_en[[col_en, 'tokens']].head(3))

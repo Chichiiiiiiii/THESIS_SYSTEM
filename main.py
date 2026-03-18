@@ -144,6 +144,7 @@ def get_sentiments(text):
         return 'Neutral'
 
 
+#For Spliting
 def lemmatize_words(text):
     lemmatizer = WordNetLemmatizer()
     words = text.split()
