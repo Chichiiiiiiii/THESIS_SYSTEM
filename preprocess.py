@@ -67,3 +67,16 @@ print(df_tl[[col_tl, 'tokens']].head(3))
 
 print("\n--- English Result ---")
 print(df_en[[col_en, 'tokens']].head(3))
+
+# ... (at the end of your existing cleaning code) ...
+
+df_en['label'] = 0
+df_tl['label'] = 1
+df_combined = pd.concat([df_en, df_tl], ignore_index=True)
+
+# Save the tokens as a single string so it's easier to load later
+df_combined['final_text'] = df_combined['tokens'].apply(lambda x: " ".join(x))
+
+# Save to CSV
+df_combined[['final_text', 'label']].to_csv("Datasets/cleaned_data.csv", index=False)
+print("Cleaned data saved to Datasets/cleaned_data.csv")

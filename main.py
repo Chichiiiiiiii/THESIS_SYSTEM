@@ -16,6 +16,31 @@ from textblob import TextBlob, Word
 from nltk import word_tokenize
 from better_profanity import profanity
 
+# --- ADD THIS TO TOP OF main.py ---
+try:
+    # Use the specific filenames from your folder
+    taglish_tfidf = joblib.load('tfidf_vectorizer.pkl')
+    # We use 'ensemble_model.pkl' which you just created
+    taglish_ensemble = joblib.load('ensemble_model.pkl') 
+    print("✅ Taglish Ensemble Model Loaded!")
+except Exception as e:
+    print(f"⚠️ Warning: Taglish model not loaded. Error: {e}")
+    taglish_ensemble = None # Prevent crash if file is missing
+
+
+def detect_taglish_vs_english(text):
+    if taglish_ensemble is None:
+        return "Model Error"
+    
+    # Clean the text using your existing function
+    cleaned = clean_text(text) 
+    # Vectorize
+    vectorized = taglish_tfidf.transform([cleaned])
+    # Predict
+    prediction = taglish_ensemble.predict(vectorized)[0]
+    
+    return "Taglish" if prediction == 1 else "English"
+
 contractions_dict = {"ain't": "are not", "aren't": "are not", "It’s": "it is",
                      "can't": "cannot", "can't've": "cannot have",
                      "'cause": "because", "could've": "could have", "couldn't": "could not",
@@ -201,7 +226,6 @@ trusted_news_providers = [
     
 ]
 
-
 @app.route('/result', methods=['POST'])
 def predict():
     query = {}
@@ -209,30 +233,21 @@ def predict():
         query['title'] = request.form['title']
         query['text'] = request.form['text']
         news = query['title'] + ' ' + query['text']
-        sentiment_intensity = get_sentiments(news)
-        count = round(count_misspelled_words(news), 2)
-        misspelled_count = str(count) + '%'
-        offensive_count = count_offensive_words(news)
-        pred = fake_news_det(news)
-        percentage = 80
-        score = 0
-        similarity_df = search_similar_articles(query)
-        similarity_df = similarity_df.sort_values(by='similarity', ascending=False)
-        domain = re.search(r"(https?://)?(www\d?\.)?(?P<name>[\w.-]+)\.\w+", similarity_df['url'][0])
-        if domain and domain.group("name") not in trusted_news_providers and similarity_df['similarity'][0] > 0.8:
-            score += 10
-        if offensive_count > 0:
-            score += 5
-        if count > 5:
-            score += 5
-        if pred == 0:
-            percentage += score
-        else:
-            percentage += 20 - score
-        percentage = str(percentage) + '%'
-        return render_template('result.html', prediction=pred, similarity_table=similarity_df,
-                               sentiment_intensity=sentiment_intensity, misspelled_count=misspelled_count,
-                               offensive_count=offensive_count, percentage=percentage)
+
+        # --- NEW TAGLISH DETECTION ---
+        detected_lang = detect_taglish_vs_english(news)
+
+        # ... your existing logic (sentiments, misspelled, etc.) ...
+
+        # Add 'detected_lang' to your return statement
+        return render_template('result.html', 
+                               prediction=pred, 
+                               language=detected_lang, # Passing it to HTML
+                               similarity_table=similarity_df,
+                               sentiment_intensity=sentiment_intensity, 
+                               misspelled_count=misspelled_count,
+                               offensive_count=offensive_count, 
+                               percentage=percentage)
 
 
 if __name__ == '__main__':
