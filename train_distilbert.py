@@ -24,9 +24,9 @@ from torch.utils.data import Dataset, DataLoader
 from transformers import (
     DistilBertTokenizerFast,
     DistilBertForSequenceClassification,
-    AdamW,
-    get_linear_schedule_with_warmup
+    get_linear_schedule_with_warmup,
 )
+from torch.optim import AdamW
 
 # ─────────────────────────────────────────────
 #  Config
