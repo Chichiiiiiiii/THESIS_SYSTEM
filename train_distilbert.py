@@ -37,9 +37,8 @@ from sklearn.metrics import (
     confusion_matrix,
 )
 
-# ─────────────────────────────────────────────
+
 #  Config
-# ─────────────────────────────────────────────
 CLEANED_DATA_PATH = "Datasets/cleaned_data.csv"
 SAVE_DIR          = "saved_models/distilbert_finetuned"
 CM_SAVE_PATH      = "saved_models/confusion_matrix.png"
@@ -55,9 +54,7 @@ DEVICE       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"[Device] {DEVICE}")
 print(f"[Model ] {MODEL_NAME}")
 
-# ─────────────────────────────────────────────
 #  Load already-cleaned dataset
-# ─────────────────────────────────────────────
 if not os.path.exists(CLEANED_DATA_PATH):
     raise FileNotFoundError(
         f"\n[!] Cannot find '{CLEANED_DATA_PATH}'.\n"
@@ -104,9 +101,8 @@ df = df[df["text"].str.len() > 10].reset_index(drop=True)
 print(f"  {len(df)} total samples  "
       f"(Fake={df.label.sum()}  Real={(df.label == 0).sum()})")
 
-# ─────────────────────────────────────────────
+
 #  Train / Val / Test split  (70 / 15 / 15)
-# ─────────────────────────────────────────────
 df = df.sample(frac=1, random_state=42).reset_index(drop=True)
 
 X_train, X_test, y_train, y_test = train_test_split(
@@ -119,9 +115,8 @@ X_train, X_val, y_train, y_val = train_test_split(
 )
 print(f"  Train={len(X_train)}  Val={len(X_val)}  Test={len(X_test)}")
 
-# ─────────────────────────────────────────────
+
 #  Dataset class
-# ─────────────────────────────────────────────
 class NewsDataset(Dataset):
     def __init__(self, texts, labels, tokenizer):
         self.texts     = list(texts)
@@ -145,9 +140,8 @@ class NewsDataset(Dataset):
             "labels":         torch.tensor(self.labels[idx], dtype=torch.long),
         }
 
-# ─────────────────────────────────────────────
+
 #  Tokenizer & DataLoaders
-# ─────────────────────────────────────────────
 print(f"\n[Tokenizer] Loading {MODEL_NAME} ...")
 tokenizer = DistilBertTokenizerFast.from_pretrained(MODEL_NAME)
 
@@ -164,9 +158,7 @@ test_loader = DataLoader(
     batch_size=BATCH_SIZE, shuffle=False, num_workers=0
 )
 
-# ─────────────────────────────────────────────
 #  Model
-# ─────────────────────────────────────────────
 print(f"[Model] Loading {MODEL_NAME} ...")
 model = DistilBertForSequenceClassification.from_pretrained(
     MODEL_NAME, num_labels=2
@@ -182,9 +174,8 @@ scheduler = get_linear_schedule_with_warmup(
     num_training_steps=total_steps,
 )
 
-# ─────────────────────────────────────────────
+
 #  Training helpers
-# ─────────────────────────────────────────────
 def train_one_epoch():
     model.train()
     total_loss, correct, total = 0.0, 0, 0
@@ -221,9 +212,8 @@ def evaluate(loader):
     f1  = f1_score(all_labels, all_preds, zero_division=0)
     return total_loss / len(loader), acc, f1, all_preds, all_labels
 
-# ─────────────────────────────────────────────
+
 #  Confusion matrix helper
-# ─────────────────────────────────────────────
 def plot_confusion_matrix(labels, preds, save_path):
     cm = confusion_matrix(labels, preds)
     tn, fp, fn, tp = cm.ravel()
@@ -261,9 +251,7 @@ def plot_confusion_matrix(labels, preds, save_path):
     plt.close()
     print(f"\n  Confusion matrix saved → '{save_path}'")
 
-# ─────────────────────────────────────────────
 #  Training loop
-# ─────────────────────────────────────────────
 os.makedirs(SAVE_DIR, exist_ok=True)
 best_f1 = 0.0
 
@@ -285,9 +273,8 @@ for epoch in range(1, EPOCHS + 1):
         tokenizer.save_pretrained(SAVE_DIR)
         print(f"   ✔ Best model saved  (val_f1={best_f1:.4f})")
 
-# ─────────────────────────────────────────────
+
 #  Final Test Evaluation
-# ─────────────────────────────────────────────
 print(f"\n{'─'*55}")
 print("  Final Test Evaluation")
 print(f"{'─'*55}")
@@ -307,4 +294,4 @@ print(classification_report(labels, preds,
 # Plot and save confusion matrix
 plot_confusion_matrix(labels, preds, CM_SAVE_PATH)
 
-print(f"\n✅ Fine-tuned DistilBERT saved to '{SAVE_DIR}/'")
+print(f"\n Fine-tuned DistilBERT saved to '{SAVE_DIR}/'")
