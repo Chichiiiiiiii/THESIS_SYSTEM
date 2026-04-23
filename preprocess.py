@@ -6,8 +6,8 @@ from nltk.tokenize import RegexpTokenizer
 from nltk.corpus import stopwords
 
 # 1. Load data
-df_tl = pd.read_csv("Datasets/Taglish.csv", nrows=1000)
-df_en = pd.read_csv("Datasets/English.csv", nrows=1000)
+df_tl = pd.read_csv("Datasets/Taglish.csv")
+df_en = pd.read_csv("Datasets/English.csv")
 
 # 2. Define Cleaning Function
 def clean_text(text):

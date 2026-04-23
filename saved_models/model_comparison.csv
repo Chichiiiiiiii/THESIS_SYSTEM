@@ -1,0 +1,6 @@
+Model,Accuracy,Precision,Recall,F1-Score
+Logistic Regression,98.86%,100.00%,96.10%,98.01%
+Naive Bayes,99.68%,99.84%,99.06%,99.45%
+SVM,99.55%,99.84%,98.60%,99.22%
+Random Forest,99.55%,100.00%,98.44%,99.21%
+Ensemble (All Models),99.68%,100.00%,98.91%,99.45%
