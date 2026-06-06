@@ -78,7 +78,6 @@ contractions_dict = {"ain't": "are not", "aren't": "are not", "It’s": "it is",
                      "y'all've": "you all have", "you'd": "you would", "you'd've": "you would have",
                      "you'll": "you will", "you'll've": "you will have", "you're": "you are"}
 
-
 def correct_words(words):
     corrected_words = []
     for word in words:
@@ -91,10 +90,7 @@ def correct_words(words):
             corrected_words.append(word.replace("’s", " is").replace("'s", " is"))
     return corrected_words
 
-
-# %%
 stemmer = PorterStemmer()
-
 
 def process_text(text):
     text = ''.join([emoji.demojize(i, delimiters=(' ', ' ')) for i in text])
@@ -108,7 +104,6 @@ def process_text(text):
     stemmed_tokens = [stemmer.stem(token) for token in tokens]
     return ' '.join(stemmed_tokens)
 
-
 def clean_text(text):
     words = text.strip().split()
     words = [word.lower() for word in words]
@@ -117,7 +112,6 @@ def clean_text(text):
     text = ' '.join([re.sub(r"[’']", '', word) for word in words])
     text = re.sub(r'http\S+', '', text)
     return text
-
 
 def search_similar_articles(query, num_results=5):
     similar_articles = []
@@ -156,7 +150,6 @@ def fake_news_det(news):
     vectorized_input_data = tfidf_v.transform(input_data)
     prediction = model.predict(vectorized_input_data)
     return prediction
-
 
 def get_sentiments(text):
     text = text.strip().lower()
@@ -202,7 +195,6 @@ def count_misspelled_words(text):
                 misspelled_words += 1
     return misspelled_words * 100 / len(total_words)
 
-
 def count_offensive_words(text):
     profanity.load_censor_words()
     count = 0
@@ -213,17 +205,12 @@ def count_offensive_words(text):
             count += 1
     return count
 
-
 app = Flask(__name__)
-
 
 @app.route('/')
 def home():
     return render_template('main.html')
-
-
 trusted_news_providers = [
-    
 ]
 
 @app.route('/result', methods=['POST'])
@@ -248,7 +235,5 @@ def predict():
                                misspelled_count=misspelled_count,
                                offensive_count=offensive_count, 
                                percentage=percentage)
-
-
 if __name__ == '__main__':
     app.run(debug=True)
