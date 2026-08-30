@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analysis Result – TruthLens</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:       #0d0f14;
+      --surface:  #13161e;
+      --card:     #1a1e2a;
+      --border:   #252a38;
+      --fake:     #ff4d4d;
+      --fake-dim: rgba(255,77,77,0.12);
+      --real:     #00d084;
+      --real-dim: rgba(0,208,132,0.12);
+      --indet:    #f5a623;
+      --indet-dim:rgba(245,166,35,0.12);
+      --text:     #e8eaf2;
+      --muted:    #6b7280;
+      --accent:   #7c6aff;
+      --accent-dim:rgba(124,106,255,0.15);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      padding: 0 0 80px;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 22px 40px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(13,15,20,0.92);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block; }
+    .back-btn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.2s;
+    }
+    .back-btn:hover { color: var(--text); }
+    .back-btn svg { width: 14px; height: 14px; }
+
+    /* ── Layout ── */
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 48px 24px 0;
+    }
+
+    /* ── Verdict Banner ── */
+    .verdict-banner {
+      border-radius: 20px;
+      padding: 36px 40px;
+      margin-bottom: 28px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .verdict-banner.fake  { background: linear-gradient(135deg, #1a0f0f 0%, var(--card) 60%); border-color: rgba(255,77,77,0.3); }
+    .verdict-banner.real  { background: linear-gradient(135deg, #0a1a12 0%, var(--card) 60%); border-color: rgba(0,208,132,0.3); }
+    .verdict-banner.indet { background: linear-gradient(135deg, #1a150a 0%, var(--card) 60%); border-color: rgba(245,166,35,0.3); }
+
+    .verdict-glow {
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 220px; height: 220px;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.25;
+      pointer-events: none;
+    }
+    .fake  .verdict-glow { background: var(--fake); }
+    .real  .verdict-glow { background: var(--real); }
+    .indet .verdict-glow { background: var(--indet); }
+
+    .verdict-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 20px;
+      position: relative;
+    }
+    .verdict-label {
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .verdict-word {
+      font-family: 'Syne', sans-serif;
+      font-size: 3.2rem;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+    .fake  .verdict-word { color: var(--fake); }
+    .real  .verdict-word { color: var(--real); }
+    .indet .verdict-word { color: var(--indet); }
+
+    .verdict-conf {
+      text-align: right;
+    }
+    .conf-number {
+      font-family: 'Syne', sans-serif;
+      font-size: 2.4rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+    .conf-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .vote-row {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-top: 24px;
+      position: relative;
+    }
+    .vote-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 99px;
+    }
+    .vote-pill.fake-pill { background: var(--fake-dim); color: var(--fake); }
+    .vote-pill.real-pill { background: var(--real-dim); color: var(--real); }
+    .vote-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .fake-pill .vote-dot { background: var(--fake); }
+    .real-pill .vote-dot { background: var(--real); }
+
+    /* ── URL Strip ── */
+    .url-strip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 28px;
+      word-break: break-all;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .url-strip svg { flex-shrink: 0; margin-top: 1px; color: var(--accent); }
+    .url-strip a { color: var(--accent); text-decoration: none; }
+    .url-strip a:hover { text-decoration: underline; }
+
+    /* ── Grid ── */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .card-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* ── Article Metadata ── */
+    .meta-field { margin-bottom: 14px; }
+    .meta-field:last-child { margin-bottom: 0; }
+    .meta-key {
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .meta-val {
+      font-size: 0.92rem;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .meta-val.title-val {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    /* ── Model Breakdown ── */
+    .model-list { display: flex; flex-direction: column; gap: 10px; }
+    .model-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-radius: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      transition: border-color 0.2s;
+    }
+    .model-row:hover { border-color: #353a50; }
+    .model-name {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .model-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 3px 10px;
+      border-radius: 99px;
+    }
+    .badge-fake { background: var(--fake-dim); color: var(--fake); }
+    .badge-real { background: var(--real-dim); color: var(--real); }
+    .model-conf { font-size: 0.78rem; color: var(--muted); }
+
+    /* ── Article Preview ── */
+    .preview-text {
+      font-size: 0.88rem;
+      line-height: 1.75;
+      color: #a0a8be;
+      font-style: italic;
+      position: relative;
+      padding-left: 16px;
+    }
+    .preview-text::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      border-radius: 99px;
+      background: linear-gradient(to bottom, var(--accent), transparent);
+    }
+
+    /* ── DistilBERT highlight ── */
+    .distilbert-row {
+      background: var(--accent-dim);
+      border-color: rgba(124,106,255,0.25) !important;
+    }
+    .distilbert-row .model-name { color: #b0a8ff; }
+
+    /* ── Disclaimer ── */
+    .disclaimer {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .disclaimer svg { flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Fact Check Section ── */
+    .factcheck-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .factcheck-empty {
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+    .factcheck-list { display: flex; flex-direction: column; gap: 12px; }
+    .factcheck-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      transition: border-color 0.2s;
+    }
+    .factcheck-item:hover { border-color: #353a50; }
+    .factcheck-claim {
+      font-size: 0.88rem;
+      color: var(--text);
+      line-height: 1.55;
+      margin-bottom: 10px;
+    }
+    .factcheck-meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .fc-rating {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      padding: 3px 10px;
+      border-radius: 99px;
+      background: var(--accent-dim);
+      color: #b0a8ff;
+    }
+    .fc-publisher {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .fc-link {
+      font-size: 0.75rem;
+      color: var(--accent);
+      text-decoration: none;
+      margin-left: auto;
+    }
+    .fc-link:hover { text-decoration: underline; }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .verdict-banner { animation: fadeUp 0.45s ease both; }
+    .url-strip      { animation: fadeUp 0.45s 0.08s ease both; }
+    .grid-2         { animation: fadeUp 0.45s 0.14s ease both; }
+    .card.full      { animation: fadeUp 0.45s 0.20s ease both; }
+    .disclaimer     { animation: fadeUp 0.45s 0.26s ease both; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="logo">
+    <span class="logo-dot"></span>TruthLens
+  </a>
+  <a href="/" class="back-btn">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+      <path d="M10 3L5 8l5 5"/>
+    </svg>
+    Analyze another
+  </a>
+</header>
+
+<main>
+
+  {# ── Determine verdict class ── #}
+  {% set vclass = 'fake' if final.label == 'FAKE' else ('real' if final.label == 'REAL' else 'indet') %}
+
+  <!-- Verdict Banner -->
+  <div class="verdict-banner {{ vclass }}">
+    <div class="verdict-glow"></div>
+    <div class="verdict-top">
+      <div>
+        <div class="verdict-label">Credibility Verdict</div>
+        <div class="verdict-word">{{ final.label }}</div>
+      </div>
+      <div class="verdict-conf">
+        <div class="conf-number">{{ final.confidence }}%</div>
+        <div class="conf-label">Avg Confidence</div>
+      </div>
+    </div>
+    <div class="vote-row">
+      <div class="vote-pill fake-pill">
+        <span class="vote-dot"></span>
+        {{ final.fake_votes }} model{{ 's' if final.fake_votes != 1 }} voted FAKE
+      </div>
+      <div class="vote-pill real-pill">
+        <span class="vote-dot"></span>
+        {{ final.real_votes }} model{{ 's' if final.real_votes != 1 }} voted REAL
+      </div>
+    </div>
+  </div>
+
+  <!-- URL Strip -->
+  <div class="url-strip">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+      <path d="M6.5 9.5a3.5 3.5 0 005 0l2-2a3.5 3.5 0 00-5-5l-1 1"/>
+      <path d="M9.5 6.5a3.5 3.5 0 00-5 0l-2 2a3.5 3.5 0 005 5l1-1"/>
+    </svg>
+    <span>Source: <a href="{{ url }}" target="_blank" rel="noopener">{{ url }}</a></span>
+  </div>
+
+  <!-- Metadata + Model Breakdown -->
+  <div class="grid-2">
+
+    <!-- Article Metadata -->
+    <div class="card">
+      <div class="card-title">Article Metadata</div>
+      <div class="meta-field">
+        <div class="meta-key">Title</div>
+        <div class="meta-val title-val">{{ title }}</div>
+      </div>
+      <div class="meta-field">
+        <div class="meta-key">Authors</div>
+        <div class="meta-val">{{ authors }}</div>
+      </div>
+      <div class="meta-field">
+        <div class="meta-key">Publish Date</div>
+        <div class="meta-val">{{ date }}</div>
+      </div>
+    </div>
+
+    <!-- Per-Model Breakdown -->
+    <div class="card">
+      <div class="card-title">Model Breakdown</div>
+      <div class="model-list">
+
+        {% for name, res in ml_results.items() %}
+        <div class="model-row">
+          <span class="model-name">{{ name }}</span>
+          <div class="model-badge">
+            <span class="model-conf">{{ res.confidence }}%</span>
+            <span class="badge {{ 'badge-fake' if res.label == 'FAKE' else 'badge-real' }}">
+              {{ res.label }}
+            </span>
+          </div>
+        </div>
+        {% endfor %}
+
+        {% if distilbert_result %}
+        <div class="model-row distilbert-row">
+          <span class="model-name">DistilBERT</span>
+          <div class="model-badge">
+            <span class="model-conf">{{ distilbert_result.confidence }}%</span>
+            <span class="badge {{ 'badge-fake' if distilbert_result.label == 'FAKE' else 'badge-real' }}">
+              {{ distilbert_result.label }}
+            </span>
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Article Preview -->
+  <div class="card full" style="margin-bottom: 16px;">
+    <div class="card-title">Article Content Snippet</div>
+    <p class="preview-text">{{ preview }}</p>
+  </div>
+
+  <!-- Fact-Check Results -->
+  <div class="factcheck-card">
+    <div class="card-title">
+      Fact-Check Cross-Reference
+      <span style="font-size:0.65rem; color:var(--muted); margin-left:8px; text-transform:none; letter-spacing:0; font-family:'DM Sans',sans-serif; font-weight:400;">
+        via Google Fact Check Tools API
+      </span>
+    </div>
+
+    {% if fact_checks %}
+      <div class="factcheck-list">
+        {% for fc in fact_checks %}
+        <div class="factcheck-item">
+          <div class="factcheck-claim">{{ fc.text }}</div>
+          <div class="factcheck-meta">
+            <span class="fc-rating">{{ fc.rating }}</span>
+            <span class="fc-publisher">{{ fc.publisher }}{% if fc.claimant and fc.claimant != 'Unknown' %} · Claimed by {{ fc.claimant }}{% endif %}</span>
+            {% if fc.url %}
+            <a class="fc-link" href="{{ fc.url }}" target="_blank" rel="noopener">View full fact-check →</a>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="factcheck-empty">
+        No matching fact-checks found for this article title. This does not confirm or deny the article's credibility — it means no fact-checkers have reviewed a closely matching claim yet.
+      </p>
+    {% endif %}
+  </div>
+
+  <!-- Disclaimer -->
+  <div class="disclaimer">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="8" cy="8" r="7"/>
+      <path d="M8 5v3.5M8 11v.5"/>
+    </svg>
+    This system uses an ensemble of ML models (Logistic Regression, Naive Bayes, SVM, Random Forest) and a fine-tuned DistilBERT transformer to classify news credibility. Results are for academic purposes only and should not be used as the sole basis for determining factual accuracy. Always verify with trusted sources.
+  </div>
+
+</main>
+</body>
+</html>

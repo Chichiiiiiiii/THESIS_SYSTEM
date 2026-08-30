@@ -4,6 +4,7 @@ app.py
 Flask web application for fake news detection.
 Connects trained DistilBERT + Traditional ML models.
 Models: Logistic Regression, Naive Bayes, SVM, Random Forest, DistilBERT
+Fact-checking: Google Fact Check Tools API
 
 Run:
     python app.py
@@ -16,6 +17,8 @@ import re
 import string
 import torch
 import numpy as np
+import urllib.parse
+import requests
 from newspaper import Article, ArticleException
 from bs4 import BeautifulSoup
 from transformers import (
@@ -23,9 +26,7 @@ from transformers import (
     DistilBertForSequenceClassification,
 )
 
-# ─────────────────────────────────────────────
 #  Paths
-# ─────────────────────────────────────────────
 DISTILBERT_DIR = "saved_models/distilbert_finetuned"
 TFIDF_PATH     = "saved_models/tfidf_vectorizer.pkl"
 LR_PATH        = "saved_models/logistic_regression.pkl"
@@ -35,9 +36,82 @@ RF_PATH        = "saved_models/random_forest.pkl"
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# ─────────────────────────────────────────────
+
+GOOGLE_FACTCHECK_API_KEY = "AIzaSyB04M2kWAwqaaCx-EZ6d3xxkKnpT5zpHB8"
+GOOGLE_FACTCHECK_URL     = "https://factchecktools.googleapis.com/v1alpha1/claims:search"
+
+def query_fact_check_api(title: str) -> list:
+    """
+    Query Google Fact Check Tools API using the article title.
+    Returns a list of fact-check results (may be empty if none found).
+    Each result has: text, claimant, rating, url, publisher
+    """
+    if not GOOGLE_FACTCHECK_API_KEY or GOOGLE_FACTCHECK_API_KEY == "YOUR_API_KEY_HERE":
+        return []
+
+    # Use first 100 chars of title as the query (API works best with short claims)
+    query = title[:100].strip()
+    if not query:
+        return []
+
+    try:
+        params = {
+            "key":            GOOGLE_FACTCHECK_API_KEY,
+            "query":          query,
+            "languageCode":   "en",   # also try "tl" for Tagalog if needed
+            "pageSize":       3,      # max 3 results to keep it clean
+        }
+        resp = requests.get(GOOGLE_FACTCHECK_URL, params=params, timeout=5)
+        resp.raise_for_status()
+        data = resp.json()
+
+        results = []
+        for item in data.get("claims", []):
+            review = item.get("claimReview", [{}])[0]
+            results.append({
+                "text":      item.get("text", ""),
+                "claimant":  item.get("claimant", "Unknown"),
+                "rating":    review.get("textualRating", "Unrated"),
+                "url":       review.get("url", ""),
+                "publisher": review.get("publisher", {}).get("name", "Unknown"),
+            })
+        return results
+
+    except requests.exceptions.Timeout:
+        print("[!] Fact Check API timed out.")
+        return []
+    except Exception as e:
+        print(f"[!] Fact Check API error: {e}")
+        return []
+
+#  Allowed News Domains (whitelist)
+ALLOWED_NEWS_DOMAINS = {
+    # Philippine news
+    "abs-cbn.com", "gmanetwork.com", "rappler.com", "inquirer.net",
+    "philstar.com", "mb.com.ph", "sunstar.com.ph", "businessmirror.com.ph",
+    "cnnphilippines.com", "one.news.ph", "pna.gov.ph", "pna.ph",
+    "manilabulletin.com", "manilatimes.net", "mindanaoexaminer.com",
+    "tempo.com.ph", "journal.com.ph", "businessworld.com.ph",
+    # International news
+    "bbc.com", "cnn.com", "reuters.com", "apnews.com", "nytimes.com",
+    "theguardian.com", "aljazeera.com", "bloomberg.com", "forbes.com",
+    "washingtonpost.com", "nbcnews.com", "cbsnews.com", "abcnews.go.com",
+    "foxnews.com", "npr.org", "voanews.com", "dw.com", "france24.com",
+}
+
+def is_news_url(url: str) -> bool:
+    try:
+        parsed   = urllib.parse.urlparse(url)
+        hostname = (parsed.hostname or "").lower().removeprefix("www.")
+        return any(
+            hostname == d or hostname.endswith("." + d)
+            for d in ALLOWED_NEWS_DOMAINS
+        )
+    except Exception:
+        return False
+
+
 #  Stopwords (English + Tagalog)
-# ─────────────────────────────────────────────
 STOP_EN = {
     "i","me","my","myself","we","our","ours","ourselves","you","your",
     "the","is","at","which","on","a","an","and","or","but","in","of",
@@ -53,9 +127,7 @@ STOP_TL = {
 }
 ALL_STOPWORDS = STOP_EN | STOP_TL
 
-# ─────────────────────────────────────────────
 #  Preprocessing
-# ─────────────────────────────────────────────
 def clean_text(text: str) -> str:
     if not isinstance(text, str) or not text.strip():
         return ""
@@ -69,9 +141,7 @@ def clean_text(text: str) -> str:
     tokens = [w for w in text.split() if w not in ALL_STOPWORDS and len(w) > 2]
     return " ".join(tokens)
 
-# ─────────────────────────────────────────────
 #  Load Traditional ML Models
-# ─────────────────────────────────────────────
 def load_pkl(path):
     if os.path.exists(path):
         return joblib.load(path)
@@ -92,9 +162,7 @@ ML_CLASSIFIERS = {
     "Random Forest":       rf_model,
 }
 
-# ─────────────────────────────────────────────
 #  Load DistilBERT Model
-# ─────────────────────────────────────────────
 distilbert_model     = None
 distilbert_tokenizer = None
 
@@ -108,9 +176,7 @@ if os.path.exists(DISTILBERT_DIR):
 else:
     print(f"[!] DistilBERT not found at '{DISTILBERT_DIR}'. Train it first.")
 
-# ─────────────────────────────────────────────
 #  Prediction Functions
-# ─────────────────────────────────────────────
 def predict_traditional(text: str) -> dict:
     if tfidf_vectorizer is None:
         return {}
@@ -180,9 +246,7 @@ def ensemble_vote(ml_results: dict, distilbert_result: dict) -> dict:
         "real_votes": real_votes
     }
 
-# ─────────────────────────────────────────────
 #  Web Scraping
-# ─────────────────────────────────────────────
 def scrape_article(url: str) -> dict:
     try:
         article = Article(url)
@@ -200,9 +264,7 @@ def scrape_article(url: str) -> dict:
     except Exception as e:
         return {"title": "", "authors": [], "date": "", "text": "", "error": str(e)}
 
-# ─────────────────────────────────────────────
 #  Flask App
-# ─────────────────────────────────────────────
 app = Flask(__name__)
 
 @app.route("/")
@@ -217,6 +279,11 @@ def analyze():
         return render_template("main.html",
                                error="Please enter a news article URL.")
 
+    if not is_news_url(url):
+        return render_template("main.html",
+                               error="This does not appear to be a recognized news website. "
+                                     "Please enter a URL from a news publication.")
+
     meta = scrape_article(url)
 
     if meta["error"] or not meta["text"]:
@@ -224,11 +291,20 @@ def analyze():
                                error="Could not extract article. "
                                      "Please check the URL and try again.")
 
+    if len(meta["text"].split()) < 50:
+        return render_template("main.html",
+                               error="The extracted content is too short to analyze. "
+                                     "This may not be a valid news article.")
+
     text = meta["text"]
 
+    # Run ML models
     ml_results        = predict_traditional(text)
     distilbert_result = predict_distilbert(text)
     final             = ensemble_vote(ml_results, distilbert_result)
+
+    # Run fact-checking against the article title
+    fact_checks = query_fact_check_api(meta["title"])
 
     return render_template(
         "result.html",
@@ -240,6 +316,7 @@ def analyze():
         ml_results        = ml_results,
         distilbert_result = distilbert_result,
         final             = final,
+        fact_checks       = fact_checks,   # ← new: list of fact-check results
     )
 
 @app.route("/health")
